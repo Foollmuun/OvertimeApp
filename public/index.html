@@ -34,6 +34,10 @@
                           'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
         const days = ['L', 'M', 'M', 'J', 'V'];
 
+        const normalizeText = (text) => {
+            return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        };
+
         const TypeSelector = ({ value, onChange, error }) => (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -669,12 +673,6 @@
             );
         });
 
-        const normalizeText = (text) => {
-            return text
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '');
-        };
-
         const TeacherInfo = ({ onSubmit }) => {
             const [formData, setFormData] = React.useState({
                 lastName: '',
@@ -960,165 +958,120 @@
             };
 
             const generatePDF = async () => {
-                const doc = new jspdf.jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                    putOnlyUsedFonts: true,
-                    floatPrecision: 16
-                });
+                try {
+                    const doc = new jspdf.jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4'
+                    });
                 
-                // Configuration pour les caractères accentués
-                doc.setFont("helvetica");
-                doc.setLanguage("fr");
+                    // Configuration pour les caractères accentués
+                    doc.setFont("helvetica");
 
-                // En-tête
-                doc.setTextColor(25, 118, 210); // Bleu Material-UI
-                doc.text("État des heures supplémentaires", 105, 20, { align: "center" });
-                
-                // Date de génération et numéros de semaines
-                doc.setFontSize(12);
-                doc.setTextColor(0, 0, 0);
-                const today = new Date();
-                doc.text(`Généré le ${today.toLocaleDateString('fr-FR')}`, 105, 30, { align: "center" });
+                    // En-tête
+                    doc.setFontSize(16);
+                    doc.setTextColor(25, 118, 210); // Bleu Material-UI
+                    doc.text("Etat des heures supplementaires", 105, 20, { align: "center" });
+                    
+                    // Informations de l'enseignant
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`${teacherInfo.firstName} ${teacherInfo.lastName} - ${teacherInfo.isPacte ? 'Pacte enseignant' : 'Hors Pacte'}`, 105, 30, { align: "center" });
+                    
+                    // Date de génération
+                    const today = new Date();
+                    doc.text(`Genere le ${today.toLocaleDateString('fr-FR')}`, 105, 40, { align: "center" });
 
-                // Calcul et affichage des numéros de semaines
-                const weeks = selectedDates.map(date => {
-                    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), parseInt(date));
-                    const onejan = new Date(d.getFullYear(), 0, 1);
-                    return Math.ceil((((d.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
-                });
-                const uniqueWeeks = [...new Set(weeks)].sort((a, b) => a - b);
-                doc.text(`Semaine${uniqueWeeks.length > 1 ? 's' : ''} ${uniqueWeeks.join(', ')}`, 105, 40, { align: "center" });
+                    // Tableau des séances
+                    let startY = 50;
+                    doc.setFontSize(10);
 
-                // Tableau des séances
-                let startY = 50;
-                doc.setFontSize(10);
+                    // En-têtes du tableau
+                    const headers = ['Date', 'Creneaux', 'Type', 'Duree', 'Details'];
+                    const colWidths = [30, 30, 30, 20, 70];
+                    let currentX = 10;
 
-                // En-têtes du tableau
-                const headers = ['Date', 'Créneaux', 'Type', 'Durée', 'Détails'];
-                const colWidths = [30, 30, 30, 20, 70];
-                let currentX = 10;
+                    // Style de l'en-tête
+                    doc.setFillColor(25, 118, 210);
+                    doc.setTextColor(255, 255, 255);
+                    headers.forEach((header, i) => {
+                        doc.rect(currentX, startY, colWidths[i], 10, 'F');
+                        doc.text(header, currentX + 2, startY + 7);
+                        currentX += colWidths[i];
+                    });
 
-                // Style de l'en-tête
-                doc.setFillColor(25, 118, 210); // Bleu foncé pour l'en-tête
-                doc.setTextColor(255, 255, 255);
-                headers.forEach((header, i) => {
-                    doc.rect(currentX, startY, colWidths[i], 10, 'F');
-                    doc.text(header, currentX + 2, startY + 7);
-                    currentX += colWidths[i];
-                });
+                    startY += 10;
+                    doc.setTextColor(0, 0, 0);
 
-                startY += 10;
-                doc.setTextColor(0, 0, 0);
+                    // Données des séances
+                    let totalHours = 0;
+                    const typeHours = {};
 
-                // Données des séances avec alternance de couleurs
-                let totalHours = 0;
-                const typeHours = {};
+                    selectedDates.forEach((date, index) => {
+                        const info = replacementInfo[date];
+                        if (!info) return;
 
-                selectedDates.forEach((date, index) => {
-                    const info = replacementInfo[date];
-                    if (!info) return;
+                        currentX = 10;
+                        const rowHeight = 10;
 
-                    // Alternance de couleurs bleu clair/blanc
-                    if (index % 2 === 0) {
-                        doc.setFillColor(232, 240, 254); // Bleu très clair
-                    } else {
-                        doc.setFillColor(255, 255, 255); // Blanc
+                        // Alternance de couleurs
+                        if (index % 2 === 0) {
+                            doc.setFillColor(240, 240, 240);
+                            doc.rect(currentX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight, 'F');
+                        }
+
+                        // Date
+                        doc.text(`${date} ${monthNames[currentMonth.getMonth()]}`, currentX + 2, startY + 7);
+                        currentX += colWidths[0];
+
+                        // Créneaux
+                        doc.text((selectedSlots[date] || []).join(', '), currentX + 2, startY + 7);
+                        currentX += colWidths[1];
+
+                        // Type
+                        doc.text(info.type, currentX + 2, startY + 7);
+                        currentX += colWidths[2];
+
+                        // Durée
+                        doc.text(`${info.duration}h`, currentX + 2, startY + 7);
+                        currentX += colWidths[3];
+
+                        // Détails
+                        let details = '';
+                        if (info.type === 'RCD') {
+                            details = `Prof: ${info.teacher}, Classe: ${info.class}`;
+                        } else if (info.type === 'DevoirsFaits' && info.file) {
+                            details = `Fichier: ${info.file.name}`;
+                        } else if (info.type === 'Autre') {
+                            details = info.description || '';
+                        }
+                        doc.text(details, currentX + 2, startY + 7);
+
+                        totalHours += info.duration;
+                        typeHours[info.type] = (typeHours[info.type] || 0) + info.duration;
+
+                        startY += rowHeight;
+                    });
+
+                    // Total
+                    startY += 10;
+                    doc.setFontSize(12);
+                    doc.text(`Total: ${totalHours}h`, 10, startY);
+
+                    // Signature si présente
+                    if (teacherSignature) {
+                        try {
+                            doc.addImage(teacherSignature, 'PNG', 130, startY - 20, 60, 20);
+                        } catch (error) {
+                            console.error('Erreur lors de l\'ajout de la signature:', error);
+                        }
                     }
 
-                    currentX = 10;
-                    const rowHeight = 10;
-
-                    // Remplir la ligne entière avec la couleur
-                    doc.rect(currentX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight, 'F');
-
-                    // Bordures de la ligne
-                    doc.setDrawColor(200, 200, 200); // Gris clair pour les bordures
-                    doc.rect(currentX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight);
-
-                    // Date et numéro de semaine
-                    const weekNum = weeks[index];
-                    doc.rect(currentX, startY, colWidths[0], rowHeight);
-                    doc.text(`${normalizeText(`${date} ${monthNames[currentMonth.getMonth()]} (S${weekNum})`)}`, currentX + 2, startY + 7);
-                    currentX += colWidths[0];
-
-                    // Créneaux
-                    doc.rect(currentX, startY, colWidths[1], rowHeight);
-                    doc.text((selectedSlots[date] || []).join(', '), currentX + 2, startY + 7);
-                    currentX += colWidths[1];
-
-                    // Type
-                    doc.rect(currentX, startY, colWidths[2], rowHeight);
-                    doc.text(info.type, currentX + 2, startY + 7);
-                    currentX += colWidths[2];
-
-                    // Durée
-                    doc.rect(currentX, startY, colWidths[3], rowHeight);
-                    doc.text(`${info.duration}h`, currentX + 2, startY + 7);
-                    currentX += colWidths[3];
-
-                    // Mise à jour des totaux
-                    totalHours += info.duration;
-                    typeHours[info.type] = (typeHours[info.type] || 0) + info.duration;
-
-                    // Détails
-                    doc.rect(currentX, startY, colWidths[4], rowHeight);
-                    let details = '';
-                    if (info.type === 'RCD') {
-                        details = `Prof: ${info.teacher}, Classe: ${info.class}`;
-                    } else if (info.type === 'DevoirsFaits' && info.file) {
-                        details = `Fichier: ${info.file.name}`;
-                    } else if (info.type === 'Autre') {
-                        details = info.description;
-                    }
-                    doc.text(normalizeText(details), currentX + 2, startY + 7);
-
-                    startY += rowHeight;
-                });
-
-                // Bilan des heures
-                startY += 20;
-                doc.setFontSize(12);
-                doc.setTextColor(25, 118, 210);
-                doc.text("Bilan des heures :", 10, startY);
-                startY += 10;
-                doc.setTextColor(0, 0, 0);
-                doc.setFontSize(10);
-
-                Object.entries(typeHours).forEach(([type, hours]) => {
-                    doc.text(`${type}: ${hours}h`, 20, startY);
-                    startY += 7;
-                });
-
-                doc.setFontSize(12);
-                doc.setTextColor(25, 118, 210);
-                startY += 7;
-                doc.text(`Total: ${totalHours}h`, 20, startY);
-
-                // Signatures
-                startY += 20;
-                doc.setTextColor(25, 118, 210);
-                doc.text("Signatures :", 10, startY);
-                
-                startY += 10;
-                doc.setTextColor(0, 0, 0);
-                // Signature de l'enseignant
-                if (teacherSignature) {
-                    try {
-                        doc.addImage(teacherSignature, 'PNG', 20, startY, 50, 25);
-                    } catch (error) {
-                        console.error('Erreur lors de l\'ajout de la signature:', error);
-                    }
+                    doc.save('heures-supplementaires.pdf');
+                } catch (error) {
+                    console.error('Erreur lors de la génération du PDF:', error);
+                    alert('Une erreur est survenue lors de la génération du PDF');
                 }
-                doc.text("Signature de l'enseignant", 20, startY + 30);
-
-                // Espace pour la signature de l'administration
-                doc.text("Signature de l'administration", 120, startY + 30);
-                doc.rect(120, startY, 50, 25);
-
-                // Sauvegarder le PDF
-                doc.save("heures_supplementaires.pdf");
             };
 
             return (
