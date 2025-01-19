@@ -643,19 +643,17 @@
                     ))}
                     <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
                         <Button
+                            variant="contained"
+                            onClick={generatePDF}
+                            color="primary"
+                        >
+                            Générer PDF sans signature
+                        </Button>
+                        <Button
                             variant="outlined"
                             onClick={() => setSignatureDialogOpen(true)}
                         >
-                            {teacherSignature ? "Modifier la signature" : "Ajouter une signature"}
-                        </Button>
-                        
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={generatePDF}
-                            disabled={!teacherSignature}
-                        >
-                            Générer le PDF
+                            Ajouter une signature
                         </Button>
                     </Box>
 
@@ -1176,14 +1174,39 @@
                                 />
                             )}
                             {step === 4 && (
-                                <Summary 
-                                    selectedDates={selectedDates}
-                                    selectedSlots={selectedSlots}
-                                    replacementInfo={replacementInfo}
-                                    generatePDF={generatePDF}
-                                    teacherSignature={teacherSignature}
-                                    onSignatureChange={setTeacherSignature}
-                                />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <SessionList
+                                        selectedDates={selectedDates}
+                                        currentMonth={currentMonth}
+                                        selectedSlots={selectedSlots}
+                                        replacementInfo={replacementInfo}
+                                        onEditSession={handleEditSession}
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
+                                        <Button
+                                            variant="contained"
+                                            onClick={generatePDF}
+                                            color="primary"
+                                        >
+                                            Générer PDF sans signature
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            onClick={() => setSignatureDialogOpen(true)}
+                                        >
+                                            Ajouter une signature
+                                        </Button>
+                                    </Box>
+                                    <SignatureDialog
+                                        open={signatureDialogOpen}
+                                        onClose={() => setSignatureDialogOpen(false)}
+                                        onSave={(signature) => {
+                                            setTeacherSignature(signature);
+                                            setSignatureDialogOpen(false);
+                                            generatePDF();
+                                        }}
+                                    />
+                                </Box>
                             )}
                             <ReplacementDialog
                                 open={dialogOpen}
