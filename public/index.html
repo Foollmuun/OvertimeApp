@@ -27,7 +27,7 @@
             IconButton, List, ListItem, ListItemText, ListItemSecondaryAction,
             RadioGroup, Radio, FormControlLabel, FormControl, FormLabel,
             Select, MenuItem, TextField, Alert, CreateIcon, PictureAsPdfIcon,
-            Switch
+            Switch, UploadFileIcon, InsertDriveFileIcon, CloseIcon
         } = MaterialUI;
 
         const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
@@ -840,6 +840,7 @@
             const [teacherSignature, setTeacherSignature] = React.useState(
                 localStorage.getItem('teacherSignature')
             );
+            const [uploadedFile, setUploadedFile] = React.useState(null);
 
             const handleMonthChange = (delta) => {
                 const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1);
@@ -1151,6 +1152,69 @@
                         }}>
                             {step === 2 && (
                                 <>
+                                    <Typography variant="h4" gutterBottom sx={{ 
+                                        fontSize: { xs: '1.1rem', sm: '2.125rem' },
+                                        textAlign: 'center',
+                                        mb: { xs: 0.25, sm: 2 }
+                                    }}>
+                                        Ajouter la liste des élèves pris en charge
+                                    </Typography>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        mb: 3
+                                    }}>
+                                        <input
+                                            accept=".pdf,.xlsx,.xls,.csv,image/*"
+                                            style={{ display: 'none' }}
+                                            id="file-upload"
+                                            type="file"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    // Stocker le fichier dans l'état
+                                                    setUploadedFile(file);
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor="file-upload">
+                                            <Button
+                                                variant="outlined"
+                                                component="span"
+                                                startIcon={<UploadFileIcon />}
+                                                sx={{ mb: 1 }}
+                                            >
+                                                Importer un fichier
+                                            </Button>
+                                        </label>
+                                        <Typography variant="caption" color="textSecondary">
+                                            Formats acceptés : PDF, Excel, CSV, Images
+                                        </Typography>
+                                        {uploadedFile && (
+                                            <Box sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1,
+                                                bgcolor: 'background.paper',
+                                                p: 1,
+                                                borderRadius: 1,
+                                                boxShadow: 1
+                                            }}>
+                                                <InsertDriveFileIcon color="primary" />
+                                                <Typography variant="body2">
+                                                    {uploadedFile.name}
+                                                </Typography>
+                                                <IconButton 
+                                                    size="small"
+                                                    onClick={() => setUploadedFile(null)}
+                                                >
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+                                        )}
+                                    </Box>
                                     <Typography variant="h4" gutterBottom sx={{ 
                                         fontSize: { xs: '1.1rem', sm: '2.125rem' },
                                         textAlign: 'center',
