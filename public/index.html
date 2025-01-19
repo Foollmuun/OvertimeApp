@@ -7,7 +7,8 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/@mui/material@5.15.4/umd/material-ui.development.js"></script>
+    <script src="https://unpkg.com/@mui/material@latest/umd/material-ui.development.js"></script>
+    <script src="https://unpkg.com/@mui/icons-material@latest/index.js"></script>
     <script src="https://unpkg.com/@emotion/react@11.11.3/dist/emotion-react.umd.min.js"></script>
     <script src="https://unpkg.com/@emotion/styled@11.11.0/dist/emotion-styled.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -21,14 +22,19 @@
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { 
-            Container, Box, Typography, Button, Grid, Paper,
-            Dialog, DialogTitle, DialogContent, DialogActions,
-            IconButton, List, ListItem, ListItemText, ListItemSecondaryAction,
-            RadioGroup, Radio, FormControlLabel, FormControl, FormLabel,
-            Select, MenuItem, TextField, Alert, CreateIcon, PictureAsPdfIcon,
-            Switch, UploadFileIcon, InsertDriveFileIcon, CloseIcon
+        const {
+            createTheme, ThemeProvider, CssBaseline, Container, Box, Typography,
+            Button, Paper, Grid, Stack, IconButton, List, ListItem, ListItemText,
+            ListItemSecondaryAction, RadioGroup, Radio, FormControlLabel,
+            FormControl, FormLabel, Select, MenuItem, TextField, Alert,
+            Switch
         } = MaterialUI;
+
+        const {
+            UploadFile: UploadFileIcon,
+            InsertDriveFile: InsertDriveFileIcon,
+            Close: CloseIcon
+        } = MaterialUIIcons;
 
         const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
                           'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
@@ -1151,7 +1157,7 @@
                             minHeight: '100vh' // Assure que le conteneur prend toute la hauteur
                         }}>
                             {step === 2 && (
-                                <>
+                                <Box sx={{ width: '100%' }}>
                                     <Typography variant="h4" gutterBottom sx={{ 
                                         fontSize: { xs: '1.1rem', sm: '2.125rem' },
                                         textAlign: 'center',
@@ -1174,7 +1180,6 @@
                                             onChange={(e) => {
                                                 const file = e.target.files[0];
                                                 if (file) {
-                                                    // Stocker le fichier dans l'état
                                                     setUploadedFile(file);
                                                 }
                                             }}
@@ -1183,7 +1188,6 @@
                                             <Button
                                                 variant="outlined"
                                                 component="span"
-                                                startIcon={<UploadFileIcon />}
                                                 sx={{ mb: 1 }}
                                             >
                                                 Importer un fichier
@@ -1202,7 +1206,6 @@
                                                 borderRadius: 1,
                                                 boxShadow: 1
                                             }}>
-                                                <InsertDriveFileIcon color="primary" />
                                                 <Typography variant="body2">
                                                     {uploadedFile.name}
                                                 </Typography>
@@ -1210,75 +1213,19 @@
                                                     size="small"
                                                     onClick={() => setUploadedFile(null)}
                                                 >
-                                                    <CloseIcon fontSize="small" />
+                                                    <Typography>×</Typography>
                                                 </IconButton>
                                             </Box>
                                         )}
                                     </Box>
-                                    <Typography variant="h4" gutterBottom sx={{ 
-                                        fontSize: { xs: '1.1rem', sm: '2.125rem' },
-                                        textAlign: 'center',
-                                        mb: { xs: 0.25, sm: 2 }
-                                    }}>
-                                        Gestion des Heures Supplémentaires
-                                    </Typography>
-                                    <Typography variant="subtitle1" sx={{ 
-                                        fontSize: { xs: '0.95rem', sm: '1.2rem' },
-                                        textAlign: 'center',
-                                        mb: { xs: 0.5, sm: 3 },
-                                        color: 'primary.main',
-                                        fontWeight: 500
-                                    }}>
-                                        {teacherInfo.firstName} {teacherInfo.lastName} - {teacherInfo.isPacte ? 'Pacte enseignant' : 'Hors Pacte'}
-                                    </Typography>
-                                    <Box sx={{ 
-                                        display: 'flex', 
-                                        flexDirection: 'column',
-                                        minHeight: '100vh',
-                                        position: 'relative'
-                                    }}>
-                                        <DateSelectionWithCalendar 
-                                            selectedDates={selectedDates}
-                                            handleDateSelect={handleDateSelect}
-                                            currentMonth={currentMonth}
-                                            handleMonthChange={handleMonthChange}
-                                        />
-                                        <Box sx={{ 
-                                            position: 'fixed',
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            p: 2,
-                                            pt: 1,
-                                            bgcolor: 'background.paper',
-                                            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
-                                            zIndex: 1000,
-                                            display: { xs: 'block', sm: 'none' }
-                                        }}>
-                                            <Button
-                                                variant="contained"
-                                                onClick={() => setStep(3)}
-                                                disabled={selectedDates.length === 0}
-                                                fullWidth
-                                            >
-                                                Suivant
-                                            </Button>
-                                        </Box>
-                                        <Box sx={{ 
-                                            mt: 2,
-                                            display: { xs: 'none', sm: 'block' }
-                                        }}>
-                                            <Button
-                                                variant="contained"
-                                                onClick={() => setStep(3)}
-                                                disabled={selectedDates.length === 0}
-                                                fullWidth
-                                            >
-                                                Suivant
-                                            </Button>
-                                        </Box>
-                                    </Box>
-                                </>
+
+                                    <DateSelectionWithCalendar 
+                                        selectedDates={selectedDates}
+                                        handleDateSelect={handleDateSelect}
+                                        currentMonth={currentMonth}
+                                        handleMonthChange={handleMonthChange}
+                                    />
+                                </Box>
                             )}
                             {step === 3 && (
                                 <SlotSelection
