@@ -683,70 +683,58 @@
                 firstName: '',
                 isPacte: true
             });
-            const [errors, setErrors] = React.useState({});
 
-            const handleSubmit = () => {
-                const newErrors = {};
-                if (!formData.lastName.trim()) newErrors.lastName = 'Le nom est requis';
-                if (!formData.firstName.trim()) newErrors.firstName = 'Le prénom est requis';
-                
-                if (Object.keys(newErrors).length > 0) {
-                    setErrors(newErrors);
-                    return;
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (formData.lastName && formData.firstName) {
+                    onSubmit(formData);
                 }
-                
-                onSubmit(formData);
             };
 
             return (
-                <Container maxWidth="sm" sx={{ mt: 4 }}>
-                    <Paper elevation={3} sx={{ p: 3 }}>
-                        <Typography variant="h5" gutterBottom align="center">
+                <Container maxWidth="sm">
+                    <Box sx={{ mt: 4 }}>
+                        <Typography variant="h4" gutterBottom align="center">
                             Informations de l'enseignant
                         </Typography>
-                        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
+                        <form onSubmit={handleSubmit}>
                             <TextField
+                                fullWidth
                                 label="Nom"
                                 value={formData.lastName}
-                                onChange={(e) => {
-                                    setFormData(prev => ({ ...prev, lastName: e.target.value }));
-                                    setErrors(prev => ({ ...prev, lastName: '' }));
-                                }}
-                                error={!!errors.lastName}
-                                helperText={errors.lastName}
-                                fullWidth
+                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                margin="normal"
+                                required
                             />
                             <TextField
+                                fullWidth
                                 label="Prénom"
                                 value={formData.firstName}
-                                onChange={(e) => {
-                                    setFormData(prev => ({ ...prev, firstName: e.target.value }));
-                                    setErrors(prev => ({ ...prev, firstName: '' }));
-                                }}
-                                error={!!errors.firstName}
-                                helperText={errors.firstName}
-                                fullWidth
+                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                margin="normal"
+                                required
                             />
                             <FormControlLabel
                                 control={
                                     <Switch
                                         checked={formData.isPacte}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, isPacte: e.target.checked }))}
-                                        color="primary"
+                                        onChange={(e) => setFormData({ ...formData, isPacte: e.target.checked })}
                                     />
                                 }
-                                label="Je participe au Pacte enseignant"
+                                label="Pacte enseignant"
                             />
-                            <Button
-                                variant="contained"
-                                onClick={handleSubmit}
-                                fullWidth
-                                size="large"
-                            >
-                                Continuer
-                            </Button>
-                        </Box>
-                    </Paper>
+                            <Box sx={{ mt: 2 }}>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    fullWidth
+                                    disabled={!formData.lastName || !formData.firstName}
+                                >
+                                    Suivant
+                                </Button>
+                            </Box>
+                        </form>
+                    </Box>
                 </Container>
             );
         };
@@ -1168,69 +1156,6 @@
                                     }}>
                                         {teacherInfo.firstName} {teacherInfo.lastName} - {teacherInfo.isPacte ? 'Pacte enseignant' : 'Hors Pacte'}
                                     </Typography>
-
-                                    <Box sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        gap: 2,
-                                        mb: 3,
-                                        p: 2,
-                                        bgcolor: 'background.paper',
-                                        borderRadius: 1,
-                                        boxShadow: 1
-                                    }}>
-                                        <Typography variant="h6" sx={{ 
-                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                        }}>
-                                            Liste des élèves pris en charge
-                                        </Typography>
-                                        <input
-                                            accept=".pdf,.xlsx,.xls,.csv,image/*"
-                                            style={{ display: 'none' }}
-                                            id="file-upload"
-                                            type="file"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    setUploadedFile(file);
-                                                }
-                                            }}
-                                        />
-                                        <label htmlFor="file-upload">
-                                            <Button
-                                                variant="outlined"
-                                                component="span"
-                                                sx={{ mb: 1 }}
-                                            >
-                                                Importer un fichier
-                                            </Button>
-                                        </label>
-                                        <Typography variant="caption" color="textSecondary">
-                                            Formats acceptés : PDF, Excel, CSV, Images
-                                        </Typography>
-                                        {uploadedFile && (
-                                            <Paper sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1,
-                                                p: 1,
-                                                width: '100%',
-                                                maxWidth: 300
-                                            }}>
-                                                <Typography variant="body2" sx={{ flex: 1 }}>
-                                                    {uploadedFile.name}
-                                                </Typography>
-                                                <Button 
-                                                    size="small"
-                                                    onClick={() => setUploadedFile(null)}
-                                                    color="error"
-                                                >
-                                                    Supprimer
-                                                </Button>
-                                            </Paper>
-                                        )}
-                                    </Box>
 
                                     <DateSelectionWithCalendar 
                                         selectedDates={selectedDates}
