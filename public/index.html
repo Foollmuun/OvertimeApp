@@ -840,6 +840,7 @@
             const [teacherSignature, setTeacherSignature] = React.useState(
                 localStorage.getItem('teacherSignature')
             );
+            const [uploadedFile, setUploadedFile] = React.useState(null);
 
             const handleMonthChange = (delta) => {
                 const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1);
@@ -1167,53 +1168,76 @@
                                     }}>
                                         {teacherInfo.firstName} {teacherInfo.lastName} - {teacherInfo.isPacte ? 'Pacte enseignant' : 'Hors Pacte'}
                                     </Typography>
-                                    <Box sx={{ 
-                                        display: 'flex', 
+
+                                    <Box sx={{
+                                        display: 'flex',
                                         flexDirection: 'column',
-                                        minHeight: '100vh',
-                                        position: 'relative'
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        mb: 3,
+                                        p: 2,
+                                        bgcolor: 'background.paper',
+                                        borderRadius: 1,
+                                        boxShadow: 1
                                     }}>
-                                        <DateSelectionWithCalendar 
-                                            selectedDates={selectedDates}
-                                            handleDateSelect={handleDateSelect}
-                                            currentMonth={currentMonth}
-                                            handleMonthChange={handleMonthChange}
+                                        <Typography variant="h6" sx={{ 
+                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                        }}>
+                                            Liste des élèves pris en charge
+                                        </Typography>
+                                        <input
+                                            accept=".pdf,.xlsx,.xls,.csv,image/*"
+                                            style={{ display: 'none' }}
+                                            id="file-upload"
+                                            type="file"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    setUploadedFile(file);
+                                                }
+                                            }}
                                         />
-                                        <Box sx={{ 
-                                            position: 'fixed',
-                                            bottom: 0,
-                                            left: 0,
-                                            right: 0,
-                                            p: 2,
-                                            pt: 1,
-                                            bgcolor: 'background.paper',
-                                            borderTop: '1px solid rgba(0, 0, 0, 0.12)',
-                                            zIndex: 1000,
-                                            display: { xs: 'block', sm: 'none' }
-                                        }}>
+                                        <label htmlFor="file-upload">
                                             <Button
-                                                variant="contained"
-                                                onClick={() => setStep(3)}
-                                                disabled={selectedDates.length === 0}
-                                                fullWidth
+                                                variant="outlined"
+                                                component="span"
+                                                sx={{ mb: 1 }}
                                             >
-                                                Suivant
+                                                Importer un fichier
                                             </Button>
-                                        </Box>
-                                        <Box sx={{ 
-                                            mt: 2,
-                                            display: { xs: 'none', sm: 'block' }
-                                        }}>
-                                            <Button
-                                                variant="contained"
-                                                onClick={() => setStep(3)}
-                                                disabled={selectedDates.length === 0}
-                                                fullWidth
-                                            >
-                                                Suivant
-                                            </Button>
-                                        </Box>
+                                        </label>
+                                        <Typography variant="caption" color="textSecondary">
+                                            Formats acceptés : PDF, Excel, CSV, Images
+                                        </Typography>
+                                        {uploadedFile && (
+                                            <Paper sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1,
+                                                p: 1,
+                                                width: '100%',
+                                                maxWidth: 300
+                                            }}>
+                                                <Typography variant="body2" sx={{ flex: 1 }}>
+                                                    {uploadedFile.name}
+                                                </Typography>
+                                                <Button 
+                                                    size="small"
+                                                    onClick={() => setUploadedFile(null)}
+                                                    color="error"
+                                                >
+                                                    Supprimer
+                                                </Button>
+                                            </Paper>
+                                        )}
                                     </Box>
+
+                                    <DateSelectionWithCalendar 
+                                        selectedDates={selectedDates}
+                                        handleDateSelect={handleDateSelect}
+                                        currentMonth={currentMonth}
+                                        handleMonthChange={handleMonthChange}
+                                    />
                                 </>
                             )}
                             {step === 3 && (
