@@ -9,8 +9,7 @@ import {
   Paper,
   Stepper,
   Step,
-  StepLabel,
-  Container
+  StepLabel
 } from '@mui/material';
 import { jsPDF } from 'jspdf';
 
@@ -34,140 +33,114 @@ function ScheduleSelection() {
   };
 
   const renderUserInfo = () => (
-    <Container maxWidth="sm">
+    <Box>
       <Box sx={{ 
         border: '5px solid #ff0000',
-        borderRadius: '12px',
+        borderRadius: '8px',
         padding: '20px',
-        marginBottom: '30px',
-        backgroundColor: '#ffeeee',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+        marginBottom: '20px',
+        backgroundColor: '#ffeeee'
       }}>
-        <Typography variant="h4" gutterBottom sx={{ 
-          color: '#ff0000', 
-          textAlign: 'center', 
-          fontWeight: 'bold',
-          textTransform: 'uppercase'
-        }}>
-          Informations de l'enseignant
+        <Typography variant="h4" gutterBottom sx={{ color: '#ff0000', textAlign: 'center', fontWeight: 'bold' }}>
+          TEST - Informations de l'enseignant
         </Typography>
       </Box>
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt: 2 }}>
         <TextField
           fullWidth
           label="Nom"
           value={formData.lastName}
           onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-          sx={{ mb: 3 }}
-          variant="outlined"
+          sx={{ mb: 2 }}
         />
         <TextField
           fullWidth
           label="Prénom"
           value={formData.firstName}
           onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-          sx={{ mb: 3 }}
-          variant="outlined"
+          sx={{ mb: 2 }}
         />
         <FormControlLabel
           control={
             <Checkbox
               checked={formData.isPacte}
               onChange={(e) => setFormData({ ...formData, isPacte: e.target.checked })}
-              color="primary"
             />
           }
           label="Je participe au Pacte enseignant"
         />
       </Box>
-    </Container>
+    </Box>
   );
 
   const renderCalendar = () => (
-    <Container maxWidth="sm">
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', color: '#1976d2', mb: 4 }}>
+    <Box>
+      <Typography variant="h6" gutterBottom>
         Sélection des créneaux
       </Typography>
       <Button
         variant="contained"
-        fullWidth
-        size="large"
         onClick={() => setFormData({
           ...formData,
           selectedSlots: [...formData.selectedSlots, { date: new Date(), slot: 'Matin' }]
         })}
-        sx={{ mt: 2 }}
       >
         Ajouter un créneau
       </Button>
-    </Container>
+    </Box>
   );
 
   const renderValidation = () => (
-    <Container maxWidth="sm">
-      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, textAlign: 'center' }}>
-        Récapitulatif
+    <Box>
+      <Typography variant="h6" sx={{ color: 'purple', mb: 2 }}>
+        TEST 20:25 - RÉCAPITULATIF AVEC PACTE
       </Typography>
       
       <Paper sx={{ 
-        p: 3, 
-        mb: 3, 
+        p: 2, 
+        mb: 2, 
         backgroundColor: formData.isPacte ? '#e8f5e9' : '#ffebee',
         border: '3px solid',
-        borderColor: formData.isPacte ? '#4caf50' : '#f44336',
-        borderRadius: '8px'
+        borderColor: formData.isPacte ? '#4caf50' : '#f44336'
       }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
           {formData.isPacte ? '✓ PARTICIPE AU PACTE' : '✗ NE PARTICIPE PAS AU PACTE'}
         </Typography>
       </Paper>
 
-      <Paper sx={{ p: 3, mb: 3, borderRadius: '8px' }}>
-        <Typography variant="h6" gutterBottom>
-          Informations personnelles :
-        </Typography>
-        <Typography variant="body1">
-          Nom : {formData.lastName}
-        </Typography>
-        <Typography variant="body1">
-          Prénom : {formData.firstName}
-        </Typography>
-      </Paper>
+      <Typography variant="subtitle1" gutterBottom>
+        {formData.firstName} {formData.lastName}
+      </Typography>
 
       {formData.selectedSlots.map((slot, index) => (
-        <Paper key={index} sx={{ p: 3, mb: 2, borderRadius: '8px' }}>
-          <Typography variant="h6">Créneau {index + 1}</Typography>
-          <Typography>Date : {new Date(slot.date).toLocaleDateString()}</Typography>
-          <Typography>Période : {slot.slot}</Typography>
+        <Paper key={index} sx={{ p: 2, mb: 2 }}>
+          <Typography>Créneau {index + 1}: {slot.slot}</Typography>
         </Paper>
       ))}
 
       <Button
         fullWidth
         variant="contained"
-        size="large"
         onClick={() => {
           const doc = new jsPDF();
           
           // En-tête
-          doc.setFillColor(25, 118, 210);
-          doc.rect(0, 0, 210, 40, 'F');
+          doc.setFillColor(200, 220, 255);
+          doc.rect(0, 0, 210, 30, 'F');
           
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(24);
-          doc.text("DÉCLARATION D'HEURES", 105, 20, { align: 'center' });
-          doc.text("SUPPLÉMENTAIRES", 105, 35, { align: 'center' });
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(22);
+          doc.text("DÉCLARATION D'HEURES SUPPLÉMENTAIRES", 105, 20, { align: 'center' });
           
           // Informations de l'enseignant
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(16);
-          doc.text("Informations de l'enseignant", 20, 60);
+          doc.setFontSize(14);
+          doc.text("Informations de l'enseignant", 20, 40);
           
           doc.setFontSize(12);
-          doc.text(`Nom : ${formData.lastName}`, 30, 75);
-          doc.text(`Prénom : ${formData.firstName}`, 30, 85);
+          doc.text(`Nom : ${formData.lastName}`, 30, 50);
+          doc.text(`Prénom : ${formData.firstName}`, 30, 60);
           
-          // Statut PACTE avec couleurs
+          // Statut PACTE avec couleurs simplifiées
           if (formData.isPacte) {
             doc.setFillColor(232, 245, 233);
             doc.setTextColor(76, 175, 80);
@@ -176,21 +149,21 @@ function ScheduleSelection() {
             doc.setTextColor(244, 67, 54);
           }
           
-          doc.rect(20, 95, 170, 20, 'F');
-          doc.setFontSize(14);
+          doc.rect(20, 70, 170, 15, 'F');
+          doc.setFontSize(12);
           doc.text(
             formData.isPacte ? "✓ PARTICIPE AU PACTE" : "✗ NE PARTICIPE PAS AU PACTE",
-            105, 107,
+            105, 80,
             { align: 'center' }
           );
           
           // Liste des créneaux
           doc.setTextColor(0, 0, 0);
-          doc.setFontSize(16);
-          doc.text("Créneaux sélectionnés", 20, 135);
+          doc.setFontSize(14);
+          doc.text("Créneaux sélectionnés", 20, 100);
           
           formData.selectedSlots.forEach((slot, index) => {
-            const y = 150 + (index * 15);
+            const y = 110 + (index * 10);
             doc.setFontSize(12);
             doc.text(`${index + 1}. ${new Date(slot.date).toLocaleDateString()} - ${slot.slot}`, 30, y);
           });
@@ -207,11 +180,11 @@ function ScheduleSelection() {
           
           doc.save('declaration-heures-sup.pdf');
         }}
-        sx={{ mt: 4 }}
+        sx={{ mt: 2 }}
       >
         Générer le PDF
       </Button>
-    </Container>
+    </Box>
   );
 
   const getStepContent = (step) => {
@@ -228,7 +201,7 @@ function ScheduleSelection() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Box>
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         {steps.map((label) => (
           <Step key={label}>
@@ -243,8 +216,6 @@ function ScheduleSelection() {
         <Button
           disabled={activeStep === 0}
           onClick={handleBack}
-          variant="outlined"
-          size="large"
         >
           Retour
         </Button>
@@ -252,12 +223,11 @@ function ScheduleSelection() {
           variant="contained"
           onClick={handleNext}
           disabled={activeStep === steps.length - 1}
-          size="large"
         >
           {activeStep === steps.length - 1 ? 'Terminer' : 'Suivant'}
         </Button>
       </Box>
-    </Container>
+    </Box>
   );
 }
 
