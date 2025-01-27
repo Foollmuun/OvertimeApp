@@ -35,14 +35,14 @@ function ScheduleSelection() {
   const renderUserInfo = () => (
     <Box>
       <Box sx={{ 
-        border: '3px solid #1976d2',
+        border: '5px solid #ff0000',
         borderRadius: '8px',
-        padding: '15px',
+        padding: '20px',
         marginBottom: '20px',
-        backgroundColor: '#f5f5f5'
+        backgroundColor: '#ffeeee'
       }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', textAlign: 'center' }}>
-          Informations de l'enseignant
+        <Typography variant="h4" gutterBottom sx={{ color: '#ff0000', textAlign: 'center', fontWeight: 'bold' }}>
+          TEST - Informations de l'enseignant
         </Typography>
       </Box>
       <Box sx={{ mt: 2 }}>
