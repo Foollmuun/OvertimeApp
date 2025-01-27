@@ -1,17 +1,17 @@
 {
-  "name": "overtime-app",
-  "version": "1.0.0",
+  "name": "overtime-app-new",
+  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/material": "^5.16.14",
-    "@mui/x-date-pickers": "^6.11.2",
-    "date-fns": "^2.30.0",
-    "jspdf": "^2.5.2",
+    "@mui/icons-material": "^6.4.0",
+    "@mui/material": "^6.4.0",
+    "cra-template": "1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "web-vitals": "^4.2.4"
   },
   "scripts": {
     "start": "react-scripts start",

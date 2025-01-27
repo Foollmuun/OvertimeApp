@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Box, 
   Button, 
-  Grid, 
   Typography,
   TextField,
   FormControlLabel,
@@ -10,12 +9,9 @@ import {
   Paper,
   Stepper,
   Step,
-  StepLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  StepLabel
 } from '@mui/material';
+import { jsPDF } from 'jspdf';
 
 function ScheduleSelection() {
   const [activeStep, setActiveStep] = useState(0);
@@ -23,148 +19,170 @@ function ScheduleSelection() {
     firstName: '',
     lastName: '',
     isPacte: false,
-    date: '',
-    selectedSlots: [],
-    replacedTeacher: '',
-    className: ''
+    selectedSlots: []
   });
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const timeSlots = {
-    morning: ['M1', 'M2', 'M3', 'M4'],
-    afternoon: ['S1', 'S2', 'S3', 'S4']
-  };
-
-  const steps = ['Informations', 'Date', 'Créneaux', 'Validation'];
+  const steps = ['Informations', 'Sélection', 'Validation'];
 
   const handleNext = () => {
-    setActiveStep((prev) => prev + 1);
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
 
   const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
-  };
-
-  const handleSlotClick = (slot) => {
-    setSelectedSlot(slot);
-    setOpenDialog(true);
-  };
-
-  const handleSlotConfirm = () => {
-    setFormData(prev => ({
-      ...prev,
-      selectedSlots: [...prev.selectedSlots, {
-        slot: selectedSlot,
-        replacedTeacher: formData.replacedTeacher,
-        className: formData.className
-      }]
-    }));
-    setOpenDialog(false);
-    setFormData(prev => ({ ...prev, replacedTeacher: '', className: '' }));
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
   const renderUserInfo = () => (
     <Box>
-      <TextField
-        fullWidth
-        label="Nom"
-        value={formData.lastName}
-        onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-        margin="normal"
-      />
-      <TextField
-        fullWidth
-        label="Prénom"
-        value={formData.firstName}
-        onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-        margin="normal"
-      />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={formData.isPacte}
-            onChange={(e) => setFormData(prev => ({ ...prev, isPacte: e.target.checked }))}
-          />
-        }
-        label="Participation au PACTE"
-      />
+      <Box sx={{ 
+        border: '3px solid #1976d2',
+        borderRadius: '8px',
+        padding: '15px',
+        marginBottom: '20px',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#1976d2', textAlign: 'center' }}>
+          Informations de l'enseignant
+        </Typography>
+      </Box>
+      <Box sx={{ mt: 2 }}>
+        <TextField
+          fullWidth
+          label="Nom"
+          value={formData.lastName}
+          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Prénom"
+          value={formData.firstName}
+          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+          sx={{ mb: 2 }}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.isPacte}
+              onChange={(e) => setFormData({ ...formData, isPacte: e.target.checked })}
+            />
+          }
+          label="Je participe au Pacte enseignant"
+        />
+      </Box>
     </Box>
   );
 
-  const renderDateSelection = () => (
+  const renderCalendar = () => (
     <Box>
-      <TextField
-        fullWidth
-        type="date"
-        label="Date"
-        value={formData.date}
-        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-        margin="normal"
-        InputLabelProps={{
-          shrink: true,
-        }}
-      />
-    </Box>
-  );
-
-  const renderTimeSlots = () => (
-    <Box>
-      <Typography variant="h6" gutterBottom>Matin</Typography>
-      <Grid container spacing={2} mb={4}>
-        {timeSlots.morning.map((slot) => (
-          <Grid item key={slot}>
-            <Button
-              variant="contained"
-              onClick={() => handleSlotClick(slot)}
-              color={formData.selectedSlots.some(s => s.slot === slot) ? "success" : "primary"}
-            >
-              {slot}
-            </Button>
-          </Grid>
-        ))}
-      </Grid>
-      <Typography variant="h6" gutterBottom>Après-midi</Typography>
-      <Grid container spacing={2}>
-        {timeSlots.afternoon.map((slot) => (
-          <Grid item key={slot}>
-            <Button
-              variant="contained"
-              onClick={() => handleSlotClick(slot)}
-              color={formData.selectedSlots.some(s => s.slot === slot) ? "success" : "primary"}
-            >
-              {slot}
-            </Button>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
-
-  const renderSummary = () => (
-    <Box>
-      <Typography variant="h6" gutterBottom>Récapitulatif</Typography>
-      <Typography>Nom: {formData.lastName}</Typography>
-      <Typography>Prénom: {formData.firstName}</Typography>
-      <Typography>PACTE: {formData.isPacte ? 'Oui' : 'Non'}</Typography>
-      <Typography>Date: {formData.date}</Typography>
-      <Typography variant="h6" mt={2}>Créneaux sélectionnés:</Typography>
-      {formData.selectedSlots.map((slot, index) => (
-        <Paper key={index} sx={{ p: 2, mt: 1 }}>
-          <Typography>Créneau: {slot.slot}</Typography>
-          <Typography>Enseignant remplacé: {slot.replacedTeacher}</Typography>
-          <Typography>Classe: {slot.className}</Typography>
-        </Paper>
-      ))}
+      <Typography variant="h6" gutterBottom>
+        Sélection des créneaux
+      </Typography>
       <Button
         variant="contained"
-        color="primary"
-        sx={{ mt: 2 }}
-        onClick={() => {
-          console.log('Générer PDF', formData);
-        }}
+        onClick={() => setFormData({
+          ...formData,
+          selectedSlots: [...formData.selectedSlots, { date: new Date(), slot: 'Matin' }]
+        })}
       >
-        Générer PDF
+        Ajouter un créneau
+      </Button>
+    </Box>
+  );
+
+  const renderValidation = () => (
+    <Box>
+      <Typography variant="h6" sx={{ color: 'purple', mb: 2 }}>
+        TEST 20:25 - RÉCAPITULATIF AVEC PACTE
+      </Typography>
+      
+      <Paper sx={{ 
+        p: 2, 
+        mb: 2, 
+        backgroundColor: formData.isPacte ? '#e8f5e9' : '#ffebee',
+        border: '3px solid',
+        borderColor: formData.isPacte ? '#4caf50' : '#f44336'
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          {formData.isPacte ? '✓ PARTICIPE AU PACTE' : '✗ NE PARTICIPE PAS AU PACTE'}
+        </Typography>
+      </Paper>
+
+      <Typography variant="subtitle1" gutterBottom>
+        {formData.firstName} {formData.lastName}
+      </Typography>
+
+      {formData.selectedSlots.map((slot, index) => (
+        <Paper key={index} sx={{ p: 2, mb: 2 }}>
+          <Typography>Créneau {index + 1}: {slot.slot}</Typography>
+        </Paper>
+      ))}
+
+      <Button
+        fullWidth
+        variant="contained"
+        onClick={() => {
+          const doc = new jsPDF();
+          
+          // En-tête
+          doc.setFillColor(200, 220, 255);
+          doc.rect(0, 0, 210, 30, 'F');
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(22);
+          doc.text("DÉCLARATION D'HEURES SUPPLÉMENTAIRES", 105, 20, { align: 'center' });
+          
+          // Informations de l'enseignant
+          doc.setFontSize(14);
+          doc.text("Informations de l'enseignant", 20, 40);
+          
+          doc.setFontSize(12);
+          doc.text(`Nom : ${formData.lastName}`, 30, 50);
+          doc.text(`Prénom : ${formData.firstName}`, 30, 60);
+          
+          // Statut PACTE avec couleurs simplifiées
+          if (formData.isPacte) {
+            doc.setFillColor(232, 245, 233);
+            doc.setTextColor(76, 175, 80);
+          } else {
+            doc.setFillColor(255, 235, 238);
+            doc.setTextColor(244, 67, 54);
+          }
+          
+          doc.rect(20, 70, 170, 15, 'F');
+          doc.setFontSize(12);
+          doc.text(
+            formData.isPacte ? "✓ PARTICIPE AU PACTE" : "✗ NE PARTICIPE PAS AU PACTE",
+            105, 80,
+            { align: 'center' }
+          );
+          
+          // Liste des créneaux
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(14);
+          doc.text("Créneaux sélectionnés", 20, 100);
+          
+          formData.selectedSlots.forEach((slot, index) => {
+            const y = 110 + (index * 10);
+            doc.setFontSize(12);
+            doc.text(`${index + 1}. ${new Date(slot.date).toLocaleDateString()} - ${slot.slot}`, 30, y);
+          });
+          
+          // Pied de page
+          doc.setFontSize(10);
+          doc.setTextColor(128, 128, 128);
+          doc.text(
+            `Document généré le ${new Date().toLocaleDateString()} à ${new Date().toLocaleTimeString()}`,
+            105,
+            doc.internal.pageSize.height - 10,
+            { align: 'center' }
+          );
+          
+          doc.save('declaration-heures-sup.pdf');
+        }}
+        sx={{ mt: 2 }}
+      >
+        Générer le PDF
       </Button>
     </Box>
   );
@@ -174,22 +192,16 @@ function ScheduleSelection() {
       case 0:
         return renderUserInfo();
       case 1:
-        return renderDateSelection();
+        return renderCalendar();
       case 2:
-        return renderTimeSlots();
-      case 3:
-        return renderSummary();
+        return renderValidation();
       default:
         return 'Unknown step';
     }
   };
 
   return (
-    <Box p={4}>
-      <Typography variant="h4" gutterBottom align="center">
-        Gestion des heures supplémentaires
-      </Typography>
-      
+    <Box>
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         {steps.map((label) => (
           <Step key={label}>
@@ -215,32 +227,6 @@ function ScheduleSelection() {
           {activeStep === steps.length - 1 ? 'Terminer' : 'Suivant'}
         </Button>
       </Box>
-
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Informations supplémentaires</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Enseignant remplacé"
-            value={formData.replacedTeacher}
-            onChange={(e) => setFormData(prev => ({ ...prev, replacedTeacher: e.target.value }))}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Classe"
-            value={formData.className}
-            onChange={(e) => setFormData(prev => ({ ...prev, className: e.target.value }))}
-            margin="normal"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Annuler</Button>
-          <Button onClick={handleSlotConfirm} variant="contained">
-            Confirmer
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

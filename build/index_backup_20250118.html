@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Heures Supplémentaires</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@mui/material@5.15.4/umd/material-ui.development.js"></script>
+    <script src="https://unpkg.com/@emotion/react@11.11.3/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.11.0/dist/emotion-styled.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <style>
+        .calendar-container {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { 
+            Container, Box, Typography, Button, Grid, Paper,
+            Dialog, DialogTitle, DialogContent, DialogActions,
+            IconButton, List, ListItem, ListItemText, ListItemSecondaryAction,
+            RadioGroup, Radio, FormControlLabel, FormControl, FormLabel,
+            Select, MenuItem, TextField, Alert, CreateIcon, PictureAsPdfIcon,
+            Switch
+        } = MaterialUI;
+
+        const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+        const TypeSelector = ({ value, onChange, error }) => (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                    Type de remplacement *
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Button
+                        className={`type-button ${value === 'DevoirsFaits' ? 'selected' : ''}`}
+                        variant={value === 'DevoirsFaits' ? 'contained' : 'outlined'}
+                        onClick={() => onChange('DevoirsFaits')}
+                    >
+                        Devoirs faits
+                    </Button>
+                    <Button
+                        className={`type-button ${value === 'RCD' ? 'selected' : ''}`}
+                        variant={value === 'RCD' ? 'contained' : 'outlined'}
+                        onClick={() => onChange('RCD')}
+                    >
+                        RCD
+                    </Button>
+                    <Button
+                        className={`type-button ${value === 'Autre' ? 'selected' : ''}`}
+                        variant={value === 'Autre' ? 'contained' : 'outlined'}
+                        onClick={() => onChange('Autre')}
+                    >
+                        Autre
+                    </Button>
+                </Box>
+                {error && (
+                    <Typography color="error" variant="caption">
+                        {error}
+                    </Typography>
+                )}
+            </Box>
+        );
+
+        const ReplacementDialog = React.memo(({ open, onClose, currentDate, initialData, onSave }) => {
+            const [formData, setFormData] = React.useState({
+                type: 'DevoirsFaits',
+                duration: 1,
+                teacher: '',
+                class: '',
+                file: null,
+                description: ''
+            });
+
+            const [error, setError] = React.useState('');
+
+            // Réinitialiser le formulaire à chaque ouverture
+            React.useEffect(() => {
+                if (open) {
+                    // Si on a des données initiales pour cette date, on les utilise
+                    if (initialData && Object.keys(initialData).length > 0) {
+                        setFormData(initialData);
+                    } else {
+                        // Sinon on réinitialise le formulaire
+                        setFormData({
+                            type: 'DevoirsFaits',
+                            duration: 1,
+                            teacher: '',
+                            class: '',
+                            file: null,
+                            description: ''
+                        });
+                    }
+                    setError('');
+                }
+            }, [open, initialData]);
+
+            const handleSave = () => {
+                if (!formData.type) {
+                    setError('Veuillez sélectionner un type');
+                    return;
+                }
+                if (formData.type === 'RCD' && (!formData.teacher || !formData.class)) {
+                    setError('Veuillez remplir tous les champs');
+                    return;
+                }
+                onSave(formData);
+                onClose();
+            };
+
+            return (
+                <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+                    <DialogTitle>
+                        Informations de remplacement
+                    </DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mt: 2 }}>
+                            <TypeSelector
+                                value={formData.type}
+                                onChange={(type) => setFormData(prev => ({ ...prev, type }))}
+                                error={error}
+                            />
+
+                            {formData.type === 'RCD' && (
+                                <Box sx={{ mt: 2 }}>
+                                    <TextField
+                                        fullWidth
+                                        label="Professeur remplacé"
+                                        value={formData.teacher}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, teacher: e.target.value }))}
+                                        margin="normal"
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        label="Classe"
+                                        value={formData.class}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value }))}
+                                        margin="normal"
+                                    />
+                                </Box>
+                            )}
+
+                            {formData.type === 'DevoirsFaits' && (
+                                <Box sx={{ mt: 2 }}>
+                                    <input
+                                        type="file"
+                                        onChange={(e) => setFormData(prev => ({ ...prev, file: e.target.files[0] }))}
+                                        style={{ display: 'none' }}
+                                        id="file-upload"
+                                    />
+                                    <label htmlFor="file-upload">
+                                        <Button
+                                            variant="outlined"
+                                            component="span"
+                                            fullWidth
+                                        >
+                                            {formData.file ? formData.file.name : 'Ajouter un fichier'}
+                                        </Button>
+                                    </label>
+                                </Box>
+                            )}
+
+                            {formData.type === 'Autre' && (
+                                <TextField
+                                    fullWidth
+                                    label="Description"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                    margin="normal"
+                                    multiline
+                                    rows={2}
+                                />
+                            )}
+
+                            <FormControl fullWidth sx={{ mt: 2 }}>
+                                <FormLabel>Durée</FormLabel>
+                                <Select
+                                    value={formData.duration}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                                >
+                                    <MenuItem value={1}>1 heure</MenuItem>
+                                    <MenuItem value={2}>2 heures</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={onClose}>Annuler</Button>
+                        <Button onClick={handleSave} color="primary">
+                            Sauvegarder
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            );
+        });
+
+        const Calendar = ({ selectedDates, onDateSelect, currentMonth, onMonthChange }) => {
+            const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+            const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+            
+            // Jours de la semaine sans samedi et dimanche
+            const days = ['L', 'M', 'M', 'J', 'V'];
+
+            return (
+                <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <IconButton onClick={() => onMonthChange(-1)}>
+                            ←
+                        </IconButton>
+                        <Typography variant="h6">
+                            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                        </Typography>
+                        <IconButton onClick={() => onMonthChange(1)}>
+                            →
+                        </IconButton>
+                    </Box>
+                    <Grid container spacing={1} className="calendar-grid">
+                        {days.map(day => (
+                            <Grid item xs={12/5} key={day}>
+                                <Typography align="center" variant="subtitle2">
+                                    {day}
+                                </Typography>
+                            </Grid>
+                        ))}
+                        {Array.from({ length: (firstDayOfMonth === 0 ? 5 : firstDayOfMonth - 1) }).map((_, index) => (
+                            <Grid item xs={12/5} key={`empty-${index}`}>
+                                <Box className="calendar-day" />
+                            </Grid>
+                        ))}
+                        {Array.from({ length: daysInMonth }).map((_, index) => {
+                            const day = index + 1;
+                            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                            const dayOfWeek = date.getDay();
+                            
+                            // Ne pas afficher samedi (6) et dimanche (0)
+                            if (dayOfWeek === 6 || dayOfWeek === 0) {
+                                return null;
+                            }
+
+                            const isSelected = selectedDates.includes(day);
+                            return (
+                                <Grid item xs={12/5} key={day}>
+                                    <Button
+                                        variant={isSelected ? "contained" : "outlined"}
+                                        onClick={() => onDateSelect(day)}
+                                        color={isSelected ? "primary" : "inherit"}
+                                        fullWidth
+                                        className="calendar-day"
+                                        sx={{ 
+                                            minWidth: 0,
+                                            p: { xs: 1, sm: 2 }
+                                        }}
+                                    >
+                                        {day}
+                                    </Button>
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                </Box>
+            );
+        };
+
+        const DateSelection = ({
+            selectedDates,
+            handleDateSelect,
+            currentMonth,
+            replacementInfo
+        }) => {
+            const daysInMonth = new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth() + 1,
+                0
+            ).getDate();
+
+            return (
+                <Box>
+                    <Typography variant="h6" gutterBottom>
+                        Sélection des dates
+                    </Typography>
+                    <Grid container spacing={1}>
+                        {[...Array(daysInMonth)].map((_, index) => {
+                            const day = index + 1;
+                            const isSelected = selectedDates.includes(day.toString());
+                            
+                            return (
+                                <Grid item key={day}>
+                                    <Button
+                                        variant={isSelected ? "contained" : "outlined"}
+                                        onClick={() => handleDateSelect(day.toString())}
+                                        sx={{ minWidth: '40px' }}
+                                    >
+                                        {day}
+                                    </Button>
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                </Box>
+            );
+        };
+
+        const DateSelectionWithCalendar = ({ 
+            selectedDates, 
+            handleDateSelect, 
+            currentMonth, 
+            handleMonthChange,
+            replacementInfo 
+        }) => (
+            <Box className="calendar-container" sx={{ 
+                display: 'flex', 
+                gap: 4,
+                flexDirection: { xs: 'column', sm: 'row' }
+            }}>
+                <Box sx={{ flex: 1 }}>
+                    <Calendar 
+                        selectedDates={selectedDates}
+                        onDateSelect={handleDateSelect}
+                        currentMonth={currentMonth}
+                        onMonthChange={handleMonthChange}
+                    />
+                </Box>
+                <Box sx={{ 
+                    flex: 1,
+                    maxHeight: { xs: '200px', sm: 'none' },
+                    overflowY: 'auto'
+                }}>
+                    <Typography variant="h6" gutterBottom>
+                        Séances sélectionnées
+                    </Typography>
+                    <List>
+                        {selectedDates.map((date, index) => (
+                            <ListItem 
+                                key={date}
+                                sx={{
+                                    mb: 1,
+                                    backgroundColor: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e0e0e0',
+                                    position: 'relative',
+                                    '&:hover': {
+                                        backgroundColor: '#f5f5f5'
+                                    }
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: '4px',
+                                        backgroundColor: '#1976d2',
+                                        borderTopLeftRadius: '8px',
+                                        borderBottomLeftRadius: '8px'
+                                    }}
+                                />
+                                <Box sx={{ pl: 2 }}>
+                                    <Typography 
+                                        variant="subtitle1" 
+                                        sx={{ 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1
+                                        }}
+                                    >
+                                        <span style={{ 
+                                            backgroundColor: '#1976d2',
+                                            color: 'white',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            fontSize: '0.9em'
+                                        }}>
+                                            Séance {index + 1}
+                                        </span>
+                                        {date} {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                                    </Typography>
+                                    <Typography 
+                                        variant="body2" 
+                                        color="textSecondary"
+                                        sx={{ mt: 0.5 }}
+                                    >
+                                        {replacementInfo[date]?.type === 'Autre' 
+                                            ? `${replacementInfo[date].type} - ${replacementInfo[date].description}`
+                                            : replacementInfo[date]?.type || 'Type non défini'}
+                                        {replacementInfo[date]?.duration 
+                                            ? ` • ${replacementInfo[date].duration} heure${replacementInfo[date].duration > 1 ? 's' : ''}`
+                                            : ' • 1 heure'}
+                                    </Typography>
+                                </Box>
+                                <ListItemSecondaryAction>
+                                    <IconButton 
+                                        onClick={() => handleDateSelect(date)}
+                                        size="small"
+                                    >
+                                        ×
+                                    </IconButton>
+                                </ListItemSecondaryAction>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
+            </Box>
+        );
+
+        const SlotSelection = ({ 
+            selectedDates, 
+            selectedSlots, 
+            handleSlotSelect, 
+            replacementInfo,
+            timeSlots,
+            onEditSession 
+        }) => (
+            <Box>
+                {selectedDates.map((date, index) => (
+                    <Paper key={date} sx={{ p: 2, mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6">
+                                Séance {index + 1} - {date} {monthNames[new Date().getMonth()]}
+                            </Typography>
+                            <Button 
+                                variant="outlined" 
+                                size="small"
+                                onClick={() => onEditSession(date)}
+                            >
+                                Modifier
+                            </Button>
+                        </Box>
+                        <Box mb={2}>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Type : {replacementInfo[date]?.type}
+                                {replacementInfo[date]?.duration && ` • ${replacementInfo[date].duration} heure(s)`}
+                            </Typography>
+                            {replacementInfo[date]?.type === 'RCD' && (
+                                <>
+                                    <Typography variant="body2">
+                                        Professeur : {replacementInfo[date]?.teacher}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        Classe : {replacementInfo[date]?.class}
+                                    </Typography>
+                                </>
+                            )}
+                            {replacementInfo[date]?.type === 'DevoirsFaits' && replacementInfo[date]?.file && (
+                                <Typography variant="body2">
+                                    Fichier joint : {replacementInfo[date].file.name}
+                                </Typography>
+                            )}
+                        </Box>
+                        <Box mb={2}>
+                            <Typography variant="subtitle1">Matin</Typography>
+                            <Grid container spacing={1}>
+                                {timeSlots.morning.map(slot => (
+                                    <Grid item key={slot}>
+                                        <Button
+                                            variant={(selectedSlots[date] || []).includes(slot) ? "contained" : "outlined"}
+                                            onClick={() => handleSlotSelect(date, slot)}
+                                            color={(selectedSlots[date] || []).includes(slot) ? "primary" : "inherit"}
+                                        >
+                                            {slot}
+                                        </Button>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Box>
+                        <Box>
+                            <Typography variant="subtitle1">Après-midi</Typography>
+                            <Grid container spacing={1}>
+                                {timeSlots.afternoon.map(slot => (
+                                    <Grid item key={slot}>
+                                        <Button
+                                            variant={(selectedSlots[date] || []).includes(slot) ? "contained" : "outlined"}
+                                            onClick={() => handleSlotSelect(date, slot)}
+                                            color={(selectedSlots[date] || []).includes(slot) ? "primary" : "inherit"}
+                                        >
+                                            {slot}
+                                        </Button>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Box>
+                    </Paper>
+                ))}
+            </Box>
+        );
+
+        const SignatureCanvas = React.memo(({ onSave }) => {
+            const canvasRef = React.useRef(null);
+            const [isDrawing, setIsDrawing] = React.useState(false);
+
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+            }, []);
+
+            const startDrawing = (e) => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                ctx.beginPath();
+                ctx.moveTo(
+                    e.clientX - rect.left,
+                    e.clientY - rect.top
+                );
+                setIsDrawing(true);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(
+                    e.clientX - rect.left,
+                    e.clientY - rect.top
+                );
+                ctx.stroke();
+            };
+
+            const stopDrawing = () => {
+                if (isDrawing) {
+                    setIsDrawing(false);
+                    onSave(canvasRef.current.toDataURL());
+                }
+            };
+
+            const clearCanvas = () => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                onSave(null);
+            };
+
+            return (
+                <Box>
+                    <canvas
+                        ref={canvasRef}
+                        width={300}
+                        height={150}
+                        style={{
+                            border: '1px solid #ccc',
+                            touchAction: 'none'
+                        }}
+                        onMouseDown={startDrawing}
+                        onMouseMove={draw}
+                        onMouseUp={stopDrawing}
+                        onMouseOut={stopDrawing}
+                    />
+                    <Button onClick={clearCanvas} size="small">
+                        Effacer
+                    </Button>
+                </Box>
+            );
+        });
+
+        const SignatureDialog = React.memo(({ open, onClose, onSave }) => {
+            const [signatureMethod, setSignatureMethod] = React.useState('draw');
+            const [drawnSignature, setDrawnSignature] = React.useState(null);
+            const [uploadedSignature, setUploadedSignature] = React.useState(null);
+
+            const handleSignatureUpload = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setUploadedSignature(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleSave = () => {
+                const signature = signatureMethod === 'draw' ? drawnSignature : uploadedSignature;
+                if (signature) {
+                    onSave(signature);
+                    localStorage.setItem('savedSignature', signature);
+                    onClose();
+                }
+            };
+
+            return (
+                <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+                    <DialogTitle>Signature</DialogTitle>
+                    <DialogContent>
+                        <FormControl component="fieldset">
+                            <RadioGroup
+                                value={signatureMethod}
+                                onChange={(e) => setSignatureMethod(e.target.value)}
+                            >
+                                <FormControlLabel
+                                    value="draw"
+                                    control={<Radio />}
+                                    label="Dessiner la signature"
+                                />
+                                <FormControlLabel
+                                    value="upload"
+                                    control={<Radio />}
+                                    label="Utiliser une signature sauvegardée"
+                                />
+                            </RadioGroup>
+                        </FormControl>
+
+                        {signatureMethod === 'draw' ? (
+                            <SignatureCanvas onSave={setDrawnSignature} />
+                        ) : (
+                            <Box sx={{ mt: 2 }}>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSignatureUpload}
+                                    style={{ display: 'none' }}
+                                    id="signature-upload"
+                                />
+                                <label htmlFor="signature-upload">
+                                    <Button
+                                        variant="outlined"
+                                        component="span"
+                                    >
+                                        Choisir une image
+                                    </Button>
+                                </label>
+                                {uploadedSignature && (
+                                    <Box sx={{ mt: 2 }}>
+                                        <img
+                                            src={uploadedSignature}
+                                            alt="Signature"
+                                            style={{ maxWidth: 300, maxHeight: 150 }}
+                                        />
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={onClose}>Annuler</Button>
+                        <Button onClick={handleSave} color="primary">
+                            Sauvegarder
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            );
+        });
+
+        const Summary = React.memo(({
+            selectedDates,
+            selectedSlots,
+            replacementInfo,
+            generatePDF,
+            teacherSignature,
+            onSignatureChange
+        }) => {
+            const [signatureDialogOpen, setSignatureDialogOpen] = React.useState(false);
+
+            return (
+                <Box>
+                    <Typography variant="h6" gutterBottom>Récapitulatif</Typography>
+                    {selectedDates.map((date, index) => (
+                        <Paper key={date} sx={{ p: 2, mb: 2 }}>
+                            <Typography variant="subtitle1">
+                                Séance {index + 1} - {date} {monthNames[new Date().getMonth()]}
+                            </Typography>
+                            <Typography>
+                                Créneaux : {(selectedSlots[date] || []).join(', ')}
+                            </Typography>
+                            {replacementInfo[date] && (
+                                <>
+                                    <Typography>
+                                        Type : {replacementInfo[date].type}
+                                    </Typography>
+                                    <Typography>
+                                        Durée : {replacementInfo[date].duration} heure(s)
+                                    </Typography>
+                                    {replacementInfo[date].type === 'RCD' && (
+                                        <>
+                                            <Typography>
+                                                Professeur remplacé : {replacementInfo[date].teacher}
+                                            </Typography>
+                                            <Typography>
+                                                Classe : {replacementInfo[date].class}
+                                            </Typography>
+                                        </>
+                                    )}
+                                    {replacementInfo[date].type === 'DevoirsFaits' && replacementInfo[date].file && (
+                                        <Typography>
+                                            Fichier joint : {replacementInfo[date].file.name}
+                                        </Typography>
+                                    )}
+                                </>
+                            )}
+                        </Paper>
+                    ))}
+                    <Box sx={{ mt: 2, display: 'flex', gap: 2, flexDirection: 'column' }}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => setSignatureDialogOpen(true)}
+                        >
+                            {teacherSignature ? "Modifier la signature" : "Ajouter une signature"}
+                        </Button>
+                        
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={generatePDF}
+                            disabled={!teacherSignature}
+                        >
+                            Générer le PDF
+                        </Button>
+                    </Box>
+
+                    <SignatureDialog
+                        open={signatureDialogOpen}
+                        onClose={() => setSignatureDialogOpen(false)}
+                        onSave={(signature) => {
+                            onSignatureChange(signature);
+                            localStorage.setItem('teacherSignature', signature);
+                        }}
+                    />
+                </Box>
+            );
+        });
+
+        const normalizeText = (text) => {
+            return text
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        };
+
+        const TeacherInfo = ({ onSubmit }) => {
+            const [formData, setFormData] = React.useState({
+                firstName: '',
+                lastName: '',
+                isPacte: false
+            });
+            const [errors, setErrors] = React.useState({});
+
+            const handleSubmit = () => {
+                const newErrors = {};
+                if (!formData.firstName.trim()) newErrors.firstName = 'Le prénom est requis';
+                if (!formData.lastName.trim()) newErrors.lastName = 'Le nom est requis';
+                
+                if (Object.keys(newErrors).length > 0) {
+                    setErrors(newErrors);
+                    return;
+                }
+                
+                onSubmit(formData);
+            };
+
+            return (
+                <Container maxWidth="sm" sx={{ mt: 4 }}>
+                    <Paper elevation={3} sx={{ p: 3 }}>
+                        <Typography variant="h5" gutterBottom align="center">
+                            Informations de l'enseignant
+                        </Typography>
+                        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
+                            <TextField
+                                label="Prénom"
+                                value={formData.firstName}
+                                onChange={(e) => {
+                                    setFormData(prev => ({ ...prev, firstName: e.target.value }));
+                                    setErrors(prev => ({ ...prev, firstName: '' }));
+                                }}
+                                error={!!errors.firstName}
+                                helperText={errors.firstName}
+                                fullWidth
+                            />
+                            <TextField
+                                label="Nom"
+                                value={formData.lastName}
+                                onChange={(e) => {
+                                    setFormData(prev => ({ ...prev, lastName: e.target.value }));
+                                    setErrors(prev => ({ ...prev, lastName: '' }));
+                                }}
+                                error={!!errors.lastName}
+                                helperText={errors.lastName}
+                                fullWidth
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.isPacte}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, isPacte: e.target.checked }))}
+                                        color="primary"
+                                    />
+                                }
+                                label="Je participe au Pacte enseignant"
+                            />
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                fullWidth
+                                size="large"
+                            >
+                                Continuer
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Container>
+            );
+        };
+
+        function App() {
+            const [step, setStep] = React.useState(1);
+            const [teacherInfo, setTeacherInfo] = React.useState(null);
+            const [selectedDates, setSelectedDates] = React.useState([]);
+            const [selectedSlots, setSelectedSlots] = React.useState({});
+            const [replacementInfo, setReplacementInfo] = React.useState({});
+            const [currentDate, setCurrentDate] = React.useState(null);
+            const [currentMonth, setCurrentMonth] = React.useState(new Date());
+            const [dialogOpen, setDialogOpen] = React.useState(false);
+            const [teacherSignature, setTeacherSignature] = React.useState(
+                localStorage.getItem('teacherSignature')
+            );
+
+            const handleMonthChange = (delta) => {
+                const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1);
+                setCurrentMonth(newDate);
+                // Réinitialiser les sélections lors du changement de mois
+                setSelectedDates([]);
+                setSelectedSlots({});
+                setReplacementInfo({});
+            };
+
+            const handleDateSelect = (date) => {
+                setSelectedDates(prev => {
+                    if (prev.includes(date)) {
+                        // Si la date est déjà sélectionnée, la retirer
+                        const newDates = prev.filter(d => d !== date);
+                        // Nettoyer aussi les informations associées
+                        const newSlots = { ...selectedSlots };
+                        delete newSlots[date];
+                        setSelectedSlots(newSlots);
+                        const newInfo = { ...replacementInfo };
+                        delete newInfo[date];
+                        setReplacementInfo(newInfo);
+                        return newDates;
+                    } else {
+                        // Sinon, l'ajouter
+                        return [...prev, date];
+                    }
+                });
+            };
+
+            const handleNext = () => {
+                if (step === 1) {
+                    setStep(2);
+                } else if (step === 2) {
+                    setStep(3);
+                } else if (step === 3) {
+                    setStep(4);
+                }
+            };
+
+            const handleBack = () => {
+                if (step === 4) {
+                    setStep(3);
+                } else if (step === 3) {
+                    setStep(2);
+                } else if (step === 2) {
+                    setStep(1);
+                }
+            };
+
+            const handleSlotSelect = (date, slot) => {
+                const currentSlots = selectedSlots[date] || [];
+                const maxSlots = 2; // Maximum 2 créneaux (1h)
+
+                if (currentSlots.includes(slot)) {
+                    // Retirer le créneau s'il est déjà sélectionné
+                    setSelectedSlots(prev => ({
+                        ...prev,
+                        [date]: currentSlots.filter(s => s !== slot)
+                    }));
+                } else {
+                    if (currentSlots.length < maxSlots) {
+                        // Vérifier si les créneaux sont consécutifs
+                        const allSlots = [...currentSlots, slot].sort();
+                        const isConsecutive = allSlots.every((s, i) => {
+                            if (i === 0) return true;
+                            const prevSlot = allSlots[i-1];
+                            const currentSlot = s;
+                            return isConsecutiveSlots(prevSlot, currentSlot);
+                        });
+
+                        if (isConsecutive) {
+                            setSelectedSlots(prev => ({
+                                ...prev,
+                                [date]: allSlots
+                            }));
+                            // Ouvrir la boîte de dialogue uniquement si c'est le premier créneau
+                            if (currentSlots.length === 0) {
+                                setCurrentDate(date);
+                                setDialogOpen(true);
+                            }
+                        } else {
+                            alert('Les créneaux doivent être consécutifs');
+                        }
+                    } else {
+                        alert('Maximum 1 heure (2 créneaux) par séance');
+                    }
+                }
+            };
+
+            const isConsecutiveSlots = (slot1, slot2) => {
+                const slotOrder = ['M1', 'M2', 'M3', 'M4', 'S1', 'S2', 'S3', 'S4'];
+                const index1 = slotOrder.indexOf(slot1);
+                const index2 = slotOrder.indexOf(slot2);
+                return Math.abs(index1 - index2) === 1;
+            };
+
+            const handleSaveReplacement = (data) => {
+                const existingSlots = selectedSlots[currentDate] || [];
+                setReplacementInfo(prev => ({
+                    ...prev,
+                    [currentDate]: {
+                        ...data,
+                        selectedSlots: existingSlots
+                    }
+                }));
+                setDialogOpen(false);
+            };
+
+            const handleEditSession = (date) => {
+                const sessionData = replacementInfo[date] || {
+                    type: 'DevoirsFaits',
+                    duration: 1,
+                    teacher: '',
+                    class: '',
+                    file: null,
+                    description: ''
+                };
+                
+                setCurrentDate(date);
+                setDialogOpen(true);
+            };
+
+            const handleDialogClose = () => {
+                setDialogOpen(false);
+            };
+
+            const timeSlots = {
+                morning: ['M1', 'M2', 'M3', 'M4'],
+                afternoon: ['S1', 'S2', 'S3', 'S4']
+            };
+
+            const generatePDF = async () => {
+                const doc = new jspdf.jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    putOnlyUsedFonts: true,
+                    floatPrecision: 16
+                });
+                
+                // Configuration pour les caractères accentués
+                doc.setFont("helvetica");
+                doc.setLanguage("fr");
+
+                // En-tête
+                doc.setTextColor(25, 118, 210); // Bleu Material-UI
+                doc.text("État des heures supplémentaires", 105, 20, { align: "center" });
+                
+                // Date de génération et numéros de semaines
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                const today = new Date();
+                doc.text(`Généré le ${today.toLocaleDateString('fr-FR')}`, 105, 30, { align: "center" });
+
+                // Calcul et affichage des numéros de semaines
+                const weeks = selectedDates.map(date => {
+                    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), parseInt(date));
+                    const onejan = new Date(d.getFullYear(), 0, 1);
+                    return Math.ceil((((d.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+                });
+                const uniqueWeeks = [...new Set(weeks)].sort((a, b) => a - b);
+                doc.text(`Semaine${uniqueWeeks.length > 1 ? 's' : ''} ${uniqueWeeks.join(', ')}`, 105, 40, { align: "center" });
+
+                // Tableau des séances
+                let startY = 50;
+                doc.setFontSize(10);
+
+                // En-têtes du tableau
+                const headers = ['Date', 'Créneaux', 'Type', 'Durée', 'Détails'];
+                const colWidths = [30, 30, 30, 20, 70];
+                let currentX = 10;
+
+                // Style de l'en-tête
+                doc.setFillColor(25, 118, 210); // Bleu foncé pour l'en-tête
+                doc.setTextColor(255, 255, 255);
+                headers.forEach((header, i) => {
+                    doc.rect(currentX, startY, colWidths[i], 10, 'F');
+                    doc.text(header, currentX + 2, startY + 7);
+                    currentX += colWidths[i];
+                });
+
+                startY += 10;
+                doc.setTextColor(0, 0, 0);
+
+                // Données des séances avec alternance de couleurs
+                let totalHours = 0;
+                const typeHours = {};
+
+                selectedDates.forEach((date, index) => {
+                    const info = replacementInfo[date];
+                    if (!info) return;
+
+                    // Alternance de couleurs bleu clair/blanc
+                    if (index % 2 === 0) {
+                        doc.setFillColor(232, 240, 254); // Bleu très clair
+                    } else {
+                        doc.setFillColor(255, 255, 255); // Blanc
+                    }
+
+                    currentX = 10;
+                    const rowHeight = 10;
+
+                    // Remplir la ligne entière avec la couleur
+                    doc.rect(currentX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight, 'F');
+
+                    // Bordures de la ligne
+                    doc.setDrawColor(200, 200, 200); // Gris clair pour les bordures
+                    doc.rect(currentX, startY, colWidths.reduce((a, b) => a + b, 0), rowHeight);
+
+                    // Date et numéro de semaine
+                    const weekNum = weeks[index];
+                    doc.rect(currentX, startY, colWidths[0], rowHeight);
+                    doc.text(`${normalizeText(`${date} ${monthNames[currentMonth.getMonth()]} (S${weekNum})`)}`, currentX + 2, startY + 7);
+                    currentX += colWidths[0];
+
+                    // Créneaux
+                    doc.rect(currentX, startY, colWidths[1], rowHeight);
+                    doc.text((selectedSlots[date] || []).join(', '), currentX + 2, startY + 7);
+                    currentX += colWidths[1];
+
+                    // Type
+                    doc.rect(currentX, startY, colWidths[2], rowHeight);
+                    doc.text(info.type, currentX + 2, startY + 7);
+                    currentX += colWidths[2];
+
+                    // Durée
+                    doc.rect(currentX, startY, colWidths[3], rowHeight);
+                    doc.text(`${info.duration}h`, currentX + 2, startY + 7);
+                    currentX += colWidths[3];
+
+                    // Mise à jour des totaux
+                    totalHours += info.duration;
+                    typeHours[info.type] = (typeHours[info.type] || 0) + info.duration;
+
+                    // Détails
+                    doc.rect(currentX, startY, colWidths[4], rowHeight);
+                    let details = '';
+                    if (info.type === 'RCD') {
+                        details = `Prof: ${info.teacher}, Classe: ${info.class}`;
+                    } else if (info.type === 'DevoirsFaits' && info.file) {
+                        details = `Fichier: ${info.file.name}`;
+                    } else if (info.type === 'Autre') {
+                        details = info.description;
+                    }
+                    doc.text(normalizeText(details), currentX + 2, startY + 7);
+
+                    startY += rowHeight;
+                });
+
+                // Bilan des heures
+                startY += 20;
+                doc.setFontSize(12);
+                doc.setTextColor(25, 118, 210);
+                doc.text("Bilan des heures :", 10, startY);
+                startY += 10;
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+
+                Object.entries(typeHours).forEach(([type, hours]) => {
+                    doc.text(`${type}: ${hours}h`, 20, startY);
+                    startY += 7;
+                });
+
+                doc.setFontSize(12);
+                doc.setTextColor(25, 118, 210);
+                startY += 7;
+                doc.text(`Total: ${totalHours}h`, 20, startY);
+
+                // Signatures
+                startY += 20;
+                doc.setTextColor(25, 118, 210);
+                doc.text("Signatures :", 10, startY);
+                
+                startY += 10;
+                doc.setTextColor(0, 0, 0);
+                // Signature de l'enseignant
+                if (teacherSignature) {
+                    try {
+                        doc.addImage(teacherSignature, 'PNG', 20, startY, 50, 25);
+                    } catch (error) {
+                        console.error('Erreur lors de l\'ajout de la signature:', error);
+                    }
+                }
+                doc.text("Signature de l'enseignant", 20, startY + 30);
+
+                // Espace pour la signature de l'administration
+                doc.text("Signature de l'administration", 120, startY + 30);
+                doc.rect(120, startY, 50, 25);
+
+                // Sauvegarder le PDF
+                doc.save("heures_supplementaires.pdf");
+            };
+
+            return (
+                <>
+                    {step === 1 ? (
+                        <TeacherInfo onSubmit={(data) => {
+                            setTeacherInfo(data);
+                            setStep(2);
+                        }} />
+                    ) : (
+                        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+                            <Typography variant="h4" gutterBottom align="center">
+                                Gestion des Heures Supplémentaires
+                            </Typography>
+                            <Typography variant="subtitle1" align="center" sx={{ mb: 3 }}>
+                                {teacherInfo.firstName} {teacherInfo.lastName} - {teacherInfo.isPacte ? 'Pacte enseignant' : 'Hors Pacte'}
+                            </Typography>
+                            {step === 2 && (
+                                <DateSelectionWithCalendar 
+                                    selectedDates={selectedDates}
+                                    handleDateSelect={handleDateSelect}
+                                    currentMonth={currentMonth}
+                                    handleMonthChange={handleMonthChange}
+                                    replacementInfo={replacementInfo}
+                                />
+                            )}
+                            {step === 3 && (
+                                <SlotSelection
+                                    selectedDates={selectedDates}
+                                    selectedSlots={selectedSlots}
+                                    handleSlotSelect={handleSlotSelect}
+                                    replacementInfo={replacementInfo}
+                                    timeSlots={timeSlots}
+                                    onEditSession={handleEditSession}
+                                />
+                            )}
+                            {step === 4 && (
+                                <Summary 
+                                    selectedDates={selectedDates}
+                                    selectedSlots={selectedSlots}
+                                    replacementInfo={replacementInfo}
+                                    generatePDF={generatePDF}
+                                    teacherSignature={teacherSignature}
+                                    onSignatureChange={setTeacherSignature}
+                                />
+                            )}
+                            <ReplacementDialog
+                                open={dialogOpen}
+                                onClose={handleDialogClose}
+                                currentDate={currentDate}
+                                initialData={currentDate ? replacementInfo[currentDate] || {} : {}}
+                                onSave={handleSaveReplacement}
+                            />
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+                                <Button
+                                    onClick={handleBack}
+                                    disabled={step === 2}
+                                >
+                                    Retour
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleNext}
+                                    disabled={
+                                        (step === 2 && selectedDates.length === 0) ||
+                                        step === 4
+                                    }
+                                >
+                                    {step === 3 ? 'Terminer' : 'Suivant'}
+                                </Button>
+                            </Box>
+                        </Container>
+                    )}
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
